@@ -1,14 +1,14 @@
 function attack_br_by_order(order_index)
 % order_index: 1 = by MVA rating, 2 = by sum of degrees
 
-tx2kb = loadcase('C:\Users\bxl180002\Downloads\RampSolar\ACTIVSg2000\case_ACTIVSg2000.m');
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
 
 if order_index == 1 % by MVA rating
     edge_descend = edge_order_by_mva_rating();
-    matname = 'attack_br_by_order.mva_rating';
+    matname = 'attack_br_by_order.mva_rating.mat';
 elseif order_index == 2 % by sum of degrees
     edge_descend = edge_order_by_degree_sum();
-    matname = 'attack_br_by_order.degree_sum';
+    matname = 'attack_br_by_order.degree_sum.mat';
 end
 
 nB = size(edge_descend, 1);
@@ -35,7 +35,7 @@ for i = 1: nI
     ne_del = nedge_remove(i);
     branchdel = edge_descend(1:ne_del, :);
         
-    for d = 1: size(load_matrix, 1)/24
+    parfor d = 1: size(load_matrix, 1)/24
 
         load_day = load_matrix(24*(d-1)+1: 24*d, :);
         [~, imax] = max(sum(load_day, 2));
@@ -60,7 +60,7 @@ save(matname);
 end
 
 function edge_descend = edge_order_by_mva_rating()
-tx2kb = loadcase('C:\Users\bxl180002\Downloads\RampSolar\ACTIVSg2000\case_ACTIVSg2000.m');
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
 [edge_unique, i_d2u, i_u2d] = unique(tx2kb.branch(:, 1:2), 'rows');
 
 
@@ -78,7 +78,7 @@ edge_descend = edge_unique_sorted(:, 1:2); % This is the order of removed branch
 end
 
 function edge_descend = edge_order_by_degree_sum()
-tx2kb = loadcase('C:\Users\bxl180002\Downloads\RampSolar\ACTIVSg2000\case_ACTIVSg2000.m');
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
 tx2kb_br_ordered = tx2kb;
 for i = 1: size(tx2kb_br_ordered.branch, 1)
     bus_from = tx2kb_br_ordered.branch(i, 1);
