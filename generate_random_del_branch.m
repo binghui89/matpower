@@ -1,0 +1,17 @@
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
+[unique_branch, i_d2u, i_u2d] = unique(tx2kb.branch(:, 1:2), 'rows');
+
+nI = 10;
+nJ = 300;
+cell_delbr = cell(nI, nJ);
+
+for i = 1: nI
+    for j = 1: nJ
+        ndel = 10*i;
+        iunique_removed = randsample(1:size(unique_branch, 1), ndel);
+        branchdel = unique_branch(iunique_removed, :);
+        cell_delbr{i, j} = branchdel;
+    end
+end
+
+save('delbr.mat', 'nI', 'nJ', 'cell_delbr', 'tx2kb', 'unique_branch');
