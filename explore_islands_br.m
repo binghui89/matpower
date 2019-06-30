@@ -1,8 +1,9 @@
 %% Random attack
 
 clear;
+tic;
 load('delbr.mat')
-tx2kb = loadcase('C:\Users\bxl180002\Downloads\RampSolar\ACTIVSg2000\case_ACTIVSg2000.m');
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
 [unique_branch, i_d2u, i_u2d] = unique(tx2kb.branch(:, 1:2), 'rows');
 
 load_matrix = csvread('./ACTIVSg2000/Jubeyer/Texas_2k_load.csv', 1, 1);
@@ -12,11 +13,12 @@ nd = size(load_matrix,1);
 
 
 nI = 20;
+nJ = 200;
 nislands_random = nan(nI, nJ);
 lolp_random     = nan(nI, nJ);
 
 for i = 1: nI
-    for j = 1: nJ % Just repeat 10 times per attack
+    parfor j = 1: nJ % Just repeat 10 times per attack
         if i <= size(cell_delbr, 1)
             branchdel = cell_delbr{i, j};
         else % Generate on fly
@@ -40,13 +42,18 @@ for i = 1: nI
         lolp_random(i, j) = sum(loss_of_load)/nd;
 
     end
+    toc;
 end
 
-save('explore_islands_br', 'nislands_random', 'lolp_random');
+if isfile('explore_islands_br.mat')
+    save('explore_islands_br.mat', 'nislands_random', 'lolp_random', '-append');
+else
+    save('explore_islands_br.mat', 'nislands_random', 'lolp_random');
+end
 
 %% MVA ratings
 clear;
-tx2kb = loadcase('C:\Users\bxl180002\Downloads\RampSolar\ACTIVSg2000\case_ACTIVSg2000.m');
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
 [edge_unique, i_d2u, i_u2d] = unique(tx2kb.branch(:, 1:2), 'rows');
 
 load_matrix = csvread('./ACTIVSg2000/Jubeyer/Texas_2k_load.csv', 1, 1);
@@ -65,7 +72,7 @@ edge_unique = [edge_unique, mva_rating];
 edge_unique_sorted = sortrows(edge_unique, 3, 'descend'); 
 edge_descend = edge_unique_sorted(:, 1:2); % This is the order of removed branches
 
-nedge_remove = 1: 10: 200;
+nedge_remove = 10: 10: 200;
 nI = length(nedge_remove);
 nislands_mva_rating = nan(nI, 1);
 lolp_mva_rating = nan(nI, 1);
@@ -74,7 +81,7 @@ for i = 1: nI
     ne_del = nedge_remove(i);
     branchdel = edge_descend(1: ne_del, :);
     
-    for d = 1: nd
+    parfor d = 1: nd
 
         test = tx2kb;
         test.bus(i_loadbus, 3) = load_matrix(d, :)';
@@ -93,11 +100,16 @@ for i = 1: nI
     nislands_mva_rating(i) = numel(cell_islands);
 end
 
-save('explore_islands_br', 'nislands_mva_rating', 'lolp_mva_rating', '-append');
+if isfile('explore_islands_br.mat')
+    save('explore_islands_br.mat', 'nislands_mva_rating', 'lolp_mva_rating', '-append');
+else
+    save('explore_islands_br.mat', 'nislands_mva_rating', 'lolp_mva_rating');
+end
 
-%% Sum of degrees of from-bus and to-bus
+% Sum of degrees of from-bus and to-bus
+tic;
 clear;
-tx2kb = loadcase('C:\Users\bxl180002\Downloads\RampSolar\ACTIVSg2000\case_ACTIVSg2000.m');
+tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
 tx2kb_br_ordered = tx2kb;
 
 load_matrix = csvread('./ACTIVSg2000/Jubeyer/Texas_2k_load.csv', 1, 1);
@@ -134,7 +146,7 @@ edge_unique = [edge_unique, edge_degree_sum];
 edge_unique_sorted = sortrows(edge_unique, 3, 'descend'); % Sort by degree sum
 edge_descend = edge_unique_sorted(:, 1:2); % This is the order of removed branches
 
-nedge_remove = 1: 10: 200;
+nedge_remove = 10: 10: 200;
 nI = length(nedge_remove);
 nislands_sum_degree = nan(nI, 1);
 lolp_sum_degree = nan(nI, 1);
@@ -143,7 +155,7 @@ for i = 1: nI
     ne_del = nedge_remove(i);
     branchdel = edge_descend(1: ne_del, :);
     
-    for d = 1: nd
+    parfor d = 1: nd
 
         test = tx2kb;
         test.bus(i_loadbus, 3) = load_matrix(d, :)';
@@ -161,4 +173,10 @@ for i = 1: nI
     cell_islands = extract_islands(test);
     nislands_sum_degree(i) = numel(cell_islands);
 end
-save('explore_islands_br', 'nislands_sum_degree', 'lolp_sum_degree', '-append');
+
+if isfile('explore_islands_br.mat')
+    save('explore_islands_br.mat', 'nislands_sum_degree', 'lolp_sum_degree', '-append');
+else
+    save('explore_islands_br.mat', 'nislands_sum_degree', 'lolp_sum_degree');
+end
+toc;
