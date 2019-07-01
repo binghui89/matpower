@@ -13,12 +13,12 @@ nd = size(load_matrix,1);
 
 
 nI = 20;
-nJ = 200;
+nJ = 50;
 nislands_random = nan(nI, nJ);
 lolp_random     = nan(nI, nJ);
 
 for i = 1: nI
-    parfor j = 1: nJ % Just repeat 10 times per attack
+    for j = 1: nJ
         if i <= size(cell_delbr, 1)
             branchdel = cell_delbr{i, j};
         else % Generate on fly
@@ -27,16 +27,20 @@ for i = 1: nI
             branchdel = unique_branch(iunique_removed, :);
         end
         
-        loss_of_load = nan(nd, 1);
+        loss_of_load = nan(size(load_matrix, 1)/24, 1);
 
-        for d = 1: nd
+        parfor d = 1: size(load_matrix, 1)/24
+            
+            load_day = load_matrix(24*(d-1)+1: 24*d, :);
+            [~, imax] = max(sum(load_day, 2));
             
             test = tx2kb;
-            test.bus(i_loadbus, 3) = load_matrix(d, :)';
+            test.bus(i_loadbus, 3) = load_day(imax, :)';
             test = remove_br1(test, branchdel);
             loss_of_load(d) = lolp_static(test);
 
         end
+        test = remove_br1(tx2kb, branchdel);
         cell_islands = extract_islands(test);
         nislands_random(i, j) = numel(cell_islands);
         lolp_random(i, j) = sum(loss_of_load)/nd;
@@ -81,10 +85,15 @@ for i = 1: nI
     ne_del = nedge_remove(i);
     branchdel = edge_descend(1: ne_del, :);
     
-    parfor d = 1: nd
+    loss_of_load = nan(size(load_matrix, 1)/24, 1);
+    
+    parfor d = 1: size(load_matrix, 1)/24
+            
+        load_day = load_matrix(24*(d-1)+1: 24*d, :);
+        [~, imax] = max(sum(load_day, 2));
 
         test = tx2kb;
-        test.bus(i_loadbus, 3) = load_matrix(d, :)';
+        test.bus(i_loadbus, 3) = load_day(imax, :)';
         test = remove_br1(test, branchdel);
         loss_of_load(d) = lolp_static(test);
 
@@ -155,10 +164,15 @@ for i = 1: nI
     ne_del = nedge_remove(i);
     branchdel = edge_descend(1: ne_del, :);
     
-    parfor d = 1: nd
+    loss_of_load = nan(size(load_matrix, 1)/24, 1);
+    
+    parfor d = 1: size(load_matrix, 1)/24
+            
+        load_day = load_matrix(24*(d-1)+1: 24*d, :);
+        [~, imax] = max(sum(load_day, 2));
 
         test = tx2kb;
-        test.bus(i_loadbus, 3) = load_matrix(d, :)';
+        test.bus(i_loadbus, 3) = load_day(imax, :)';
         test = remove_br1(test, branchdel);
         loss_of_load(d) = lolp_static(test);
 

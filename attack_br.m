@@ -1,6 +1,6 @@
-function attack_br(host, nhost)
-% host = 1, 2, indicating which node we are using and the tasks will be
-% assigned accordingly.
+function attack_br(nbatch)
+% nbatch = 1, 2, 3, 4, which corresponds to number of removed edges from 10
+% to50, 60:100, 110:150 and 160 to 200
 tic;
 load('delbr.mat');
 tx2kb.gencost(:, 5) = 0; % Cost functions are forced to be linear to avoid non-convex situation. We don't care about costs so this should be OK.
@@ -11,23 +11,28 @@ load_matrix = csvread('./ACTIVSg2000/Jubeyer/Texas_2k_load.csv', 1, 1);
 load_matrix(:, end) = []; % This column is total load
 i_loadbus = tx2kb.bus(:, 3)>0;
 
+nJ = 50;
+
 % nI = 10; % 10 ~ nI*10 of branches are moved
-nJ_host = nJ/nhost; % Each node are assigned 1/3 of total tasks
-cell_delbr_host = cell_delbr(:, (host-1)*nJ_host+1: host*nJ_host);
+% nJ = nJ/nhost; % Each node are assigned 1/3 of total tasks
+% cell_delbr_host = cell_delbr(:, (host-1)*nJ+1: host*nJ);
 
 % Result containers
 % status_case = ones(nI, nJ);
 % cell_msg    = cell(nI, nJ);
-load_total   = nan(nI, nJ_host, size(load_matrix, 1)/24);
-load_shed    = nan(nI, nJ_host, size(load_matrix, 1)/24);
+
+Ibatch = (nbatch-1)*5+1: nbatch*5;
+nI = numel(Ibatch);
+load_total   = nan(nI, size(load_matrix, 1)/24, nJ);
+load_shed    = nan(nI, size(load_matrix, 1)/24, nJ);
 % cell_results = cell(nI, nJ_host, size(load_matrix, 1)/24);
 
-for i = 1: nI
-    for j = 1: nJ_host % Just repeat 10 times per attack
+for i = Ibatch
+    for j = 1: nJ 
 %         ndel = 10*i;
 %         iunique_removed = randsample(1:size(unique_branch, 1), ndel); % The ith unique branch is removed, may include multiple circuits.
 %         branchdel = unique_branch(iunique_removed, :);
-        branchdel = cell_delbr_host{i, j};
+        branchdel = cell_delbr{i, j};
 %         cell_delbr{i, j} = branchdel;
         
         parfor d = 1: size(load_matrix, 1)/24
@@ -41,8 +46,8 @@ for i = 1: nI
             
             [load_shed_k, results] = run_with_br_remove(test, branchdel);
 %             cell_results{i, j, d} = results;
-            load_total(i, j, d) = sum(load_day(imax, :));
-            load_shed(i, j, d)  = sum(load_shed_k);
+            load_total(i, d, j) = sum(load_day(imax, :));
+            load_shed(i, d, j)  = sum(load_shed_k);
 
         end
 
@@ -52,8 +57,10 @@ end
 toc;
 
 lolp = mean(...
-    sum((~isnan(load_shed)) & (load_shed>1E-3), 3)./sum(~isnan(load_shed), 3), 2 ...
+    sum((~isnan(load_shed)) & (load_shed>1E-3), 2)./sum(~isnan(load_shed), 2), 3 ...
     ); % Loss-of-load probability
+savename = strcat('attack_br_by_order.random', int2str(nbatch), '.mat');
+save(savename);
 end
 
 function [load_shed_k, results] = run_with_br_remove(mpc, branchdel)
@@ -67,7 +74,6 @@ fprintf('Removed: %g, Isolated islands: %g\n', ndel, numel(cell_islands));
 % out.all controls pretty-printing of results, default to -1, 0: nothing.
 % verbose controls amount of progress info to be printed,
 % default to 1, 0 print no progress.
-mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'OT');
 
 load_shed_k = nan(numel(cell_islands), 1);
 
@@ -76,9 +82,11 @@ for k = 1: numel(cell_islands)
     [case_k_vg, i_vg] = virtual_gen(case_k); % Add virtual generators
     case_k_vg.gen(:, 10) = 0; % PMIN = 0;
     try
+        mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'OT');
         results = rundcopf(case_k_vg, mpopt);
     catch
         mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'CPLEX');
+%         mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'GUROBI', 'gurobi.timelimit', 300); % If we cannot solve within 5 min, then we cannot solve forever
         results = rundcopf(case_k_vg, mpopt);
     end
     fprintf('Removed: %g, Alg: %s, success: %g, Total load: %f, obj: %f\n', ndel, results.raw.output.alg, results.success, sum(results.bus(:, 3)), results.f);
