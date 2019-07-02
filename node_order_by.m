@@ -1,6 +1,10 @@
 function node_descend = node_order_by(attr)
 % attr: 'degree', 'baseKV', 'sumPMAX', 'sumMVA'
+% Return: An array of nodes ordered by attr (nx1) vector
 tx2kb = loadcase('./ACTIVSg2000/case_ACTIVSg2000.m');
+tx2kb.gen(strcmp(tx2kb.gentype, 'W2'), 9:10) = 0; % Remove wind generators
+tx2kb.gen(strcmp(tx2kb.gentype, 'PV'), 9:10) = 0; % Remove wind generators
+
 tx2kb_br_ordered = tx2kb;
 for i = 1: size(tx2kb_br_ordered.branch, 1)
     bus_from = tx2kb_br_ordered.branch(i, 1);
@@ -53,5 +57,5 @@ end
 
 array_nodes_sorted = sortrows(array_nodes, iwhat, 'descend');
 
-node_descend = array_nodes_sorted(:, 1);
+node_descend = array_nodes_sorted(:, [1, iwhat]); % % The ranking criteria is included in the output
 end
