@@ -163,14 +163,22 @@ for k = 1: numel(cell_islands)
     end
 
     if ~results.success
-        mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'OT');
-        results = rundcopf(case_k_vg, mpopt);
-        fprintf('Repeat using linprog\n');
+        try
+            mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'OT');
+            results = rundcopf(case_k_vg, mpopt);
+            fprintf('Repeat using linprog\n');
+        catch
+            mpopt = mpoption('out.all', 0, 'verbose', 0, 'opf.dc.solver', 'CPLEX');
+            results = rundcopf(case_k_vg, mpopt);
+        end
     end
 
     if ~results.success
-        raw_message = results.raw.output.message;
-        fprintf('%s\n', raw_message);
+        try
+            raw_message = results.raw.output.message;
+            fprintf('%s\n', raw_message);
+        catch
+        end
         load_shed_k(k) = nan;
         lolp_k(k) = nan;
     else
