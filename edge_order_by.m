@@ -33,7 +33,7 @@ G = graph(s, t);
 G.Nodes.Degree = degree(G);
 
 
-array_edges = [edge_unique, nan(size(edge_unique, 1), 4)];
+array_edges = [nan(size(edge_unique)), nan(size(edge_unique, 1), 4)];
 for i = 1: size(G.Edges, 1) % G.Edges should include the same number of edges as array_edges does
     strbusf = G.Edges{i, 'EndNodes'}{1};
     strbust = G.Edges{i, 'EndNodes'}{2};
@@ -47,6 +47,8 @@ for i = 1: size(G.Edges, 1) % G.Edges should include the same number of edges as
     PMAXf = sum(tx2kb.gen(tx2kb.gen(:, 1)==busf, 9));
     PMAXt = sum(tx2kb.gen(tx2kb.gen(:, 1)==bust, 9));
     
+    array_edges(i, 1) = busf;
+    array_edges(i, 2) = bust;
     array_edges(i, 3) = sumdegree;
     array_edges(i, 4) = MVA;
     array_edges(i, 5) = kVf + kVt;
